@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard | Reportes</title>
+
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard/vendors/mdi/css/materialdesignicons.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard/vendors/css/vendor.bundle.base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard/css/style.css') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='dashboard/images/favicon.png') }}" />
+  
+  <!-- Estilos para el gráfico -->
+  <style>
+    .chart-container {
+        background: #fff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-top: 25px;
+        border: 1px solid #e0e0e0;
+    }
+
+    .chart-container h3 {
+        color: #2c3e50;
+        margin-bottom: 20px;
+        text-align: center;
+        font-size: 1.4em;
+        font-weight: 600;
+    }
+
+    #fallasChart {
+        max-height: 500px;
+        min-height: 400px;
+    }
+
+    /* 👇 mejora visual del texto del canvas */
+    canvas {
+        image-rendering: crisp-edges;
+        -webkit-font-smoothing: antialiased;
+        font-smooth: always;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="row mb-2 mt-5">
+    <div class="col-md-8 text-center">
+      <h3 class="font-weight-bold" style="color:white;">Dashboard UNEG - Fallas por Categoría</h3>
+    </div>
+  </div>
+
+  
+  <div class="container-scroller">
+    <div class="container-fluid page-body-wrapper">
+      <div class="main-panel">
+        <div class="content-wrapper">
+
+          <div class="row" id="contenedor-categorias"></div>
+
+          <!-- Contenedor del gráfico                  -->
+        <div class="card mt-8 p-3 shadow-sm">
+            <h5 class="text-center mb-3"></h5>
+            <canvas id="graficoReportes" width="400" height="100"></canvas> 
+            
+            
+        </div>
+
+        </div>
+      </div> <!-- main-panel -->
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='dashboard/vendors/js/vendor.bundle.base.js') }}"></script>
+<script src="{{ url_for('static', filename='dashboard/js/off-canvas.js') }}"></script>
+<script src="{{ url_for('static', filename='dashboard/js/misc.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const contenedorTarjetas = document.getElementById('contenedor-categorias');
+    let fallasChart = null;
+
+    // === Cargar tarjetas ===
+    async function actualizarTarjetas() {
+        try {
+            const response = await fetch('/api/fallas_por_categoria');
+            const data = await response.json();
+            contenedorTarjetas.innerHTML = '';
+
+            
+
+            data.forEach(cat => {
+                const iconClass = (cat.cantidad >= 5)
+                    ? 'mdi-arrow-up-bold text-success'
+                    : (cat.cantidad >= 2)
+                        ? 'mdi-arrow-right-bold text-warning'
+                        : 'mdi-arrow-down-bold text-danger';
+
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'col-md-3 mb-4';
+                tarjeta.innerHTML = `
+                    <div class="card bg-dark text-white h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <h3 class="font-weight-bold mb-0">${cat.categoria}</h3>
+                            <h3 class="metric-value mb-2">${cat.cantidad}</h3>
+                            <i class="mdi ${iconClass}"></i>
+                        </div>
+                    </div>
+                `;
+                contenedorTarjetas.appendChild(tarjeta);
+            });
+        } catch (error) {
+            console.error('Error al actualizar tarjetas:', error);
+        }
+    }
+    
+    // === Cargar gráfico principal ===
+    async function cargarGrafico() {
+        try {
+            const response = await fetch('/api/fallas_por_sede_categoria'); // tu endpoint Flask
+            const data = await response.json();
+
+            const sedes = data.sedes;
+            const categorias = data.categorias;
+
+            const colores = [
+                '#ff6384', '#36a2eb', '#ffcd56', '#4bc0c0',
+                '#9966ff', '#ff9f40', '#c9cbcf', '#8affc1'
+            ];
+
+            // Destruir gráfico anterior si existe
+            if (fallasChart) fallasChart.destroy();
+
+            // Crear datasets
+            const datasets = categorias.map((categoria, index) => {
+                const valores = sedes.map(sede => categoria.datosPorSede[sede] || 0);
+                return {
+                    label: categoria.nombre,
+                    data: valores,
+                    backgroundColor: colores[index % colores.length],
+                    borderColor: '#fff',
+                    borderWidth: 1,
+                    
+                };
+            });
+
+            // Crear gráfico
+            const ctx = document.getElementById('graficoReportes').getContext('2d');
+            fallasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sedes,
+                    datasets: datasets,
+                    font: { size: 18 }
+                },
+                options: {
+                    responsive: true,
+                    // 1. 🛑 DESACTIVAR TODAS LAS ANIMACIONES GLOBALES (NUEVO)
+                    animation: false, 
+                    
+                    // 2. Controlar la interacción general
+                    interaction: {
+                        mode: 'none', 
+                        intersect: true,
+                    },
+                    
+                    // 3. Controlar el hover específico (Mantenemos esta estructura)
+                    hover: {
+                        animationDuration: 0,
+                    },
+                   
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#fff',
+                                
+                                font: {
+                                    size: 20 // Aumenta este valor (ej: 14)
+                                }
+                             }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Reportes por Sede y Categoría',
+                            color: '#fff',
+                            font: { size: 18 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#fff', 
+                                font: {
+                                    size: 20 // Aumenta este valor (ej: 14, 16, 18)
+                                }
+                            },
+                            grid: { color: '#333' },
+                            
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#fff', 
+                                font: {
+                                    size: 15 // Aumenta este valor (ej: 14, 16, 18)
+                                }
+                            },
+                            grid: { color: '#333' },
+                            
+                            title: {
+                                display: true,
+                                text: 'Cantidad de Reportes',
+                                color: '#fff',
+                                font: { size: 20 }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error al cargar gráfico:', error);
+        }
+    }
+
+    // === Ejecución inicial ===
+    await actualizarTarjetas();
+    await cargarGrafico();
+
+    // === Actualización automática cada 10s ===
+    setInterval(async () => {
+        //await actualizarTarjetas();
+        //await cargarGrafico();
+        
+    }, 3000);
+    
+});
+</script>
+
+
+</body>
+</html>

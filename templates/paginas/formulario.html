@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportar Falla - UNEGIA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/formulario.css') }}">
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <header class="hero-section text-center text-white py-5">
+        <div class="container">
+            <!-- Enlace Inicio arriba a la izquierda -->
+            <a href="/" class="position-absolute top-0 start-0 ms-4 fw-bold text-white text-decoration-none py-5">
+                <h4 class="fw-bold mb-2">Cancelar</h4>
+            </a>
+            <h1 class="fw-bold mb-2">Formulario de Reporte</h1>
+        </div>
+    </header>
+
+    <!-- Formulario -->
+    <section class="form-section">
+        <div class="container">
+            <div class="row justify-content-center align-items-center">
+                <div class="col-md-5 d-none d-md-block text- navbar-expand-lg">
+                    <img src="{{ url_for('static', filename='img/avatar_unegia.png') }}" alt="Formulario ilustración" class="img-fluid form-img">
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card shadow p-4 rounded-4">
+
+                        <!-- ✅ Aquí empieza el formulario correcto -->
+                        <form action="{{ url_for('enviar_reporte') }}" method="POST" enctype="multipart/form-data">
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Cédula</label>
+                                <input 
+                                    type="text" 
+                                    id="cedula" 
+                                    name="cedula" 
+                                    class="form-control" 
+                                    placeholder="Ingrese su número de cédula"
+                                    required
+                                >
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Categoría</label>
+                                <input type="text" class="form-control" value="{{ categoria.nombre }}" disabled>
+                                <input type="hidden" id="categoria_id" name="categoria" value="{{ categoria.id }}">
+                            </div>
+
+                            <div class="mb-3 position-relative">
+                            <label for="fallaDropdown" class="form-label fw-semibold">Seleccione la falla:</label>
+
+                            <!-- Botón que abre el menú -->
+                            <button class="btn btn-outline-secondary w-100 text-start" type="button" id="fallaDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                -- Seleccione una falla --
+                            </button>
+
+                            <!-- Campo oculto para enviar el ID o nombre seleccionado -->
+                            <input type="hidden" name="falla_id" id="falla_id">
+
+                            <!-- Tooltip visual -->
+                            <div id="tooltipFalla" class="position-absolute bg-light border rounded p-2 shadow" 
+                                style="display:none; z-index:1055; top:100%; left:0; min-width:250px;">
+                            </div>
+
+                            <!-- Menú desplegable -->
+                            <ul class="dropdown-menu w-100" aria-labelledby="fallaDropdownBtn" id="fallaDropdown">
+                                {% for f in fallas %}
+                                <li>
+                                    <a class="dropdown-item" href="#" data-id="{{ f.id }}" data-inf="{{ f.inf }}">{{ f.descripcion }}</a>
+                                </li>
+                                {% endfor %}
+                                <li><hr class="dropdown-divider"></li>
+                            </ul>
+                        </div>
+
+                        <!-- 🔹 Campo que aparecerá solo si el usuario elige "Otros" -->
+                        <div class="mb-3" id="campo_otro" style="display: none;">
+                            
+                            <label class="form-label fw-semibold">Especifique la Falla</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="otra_falla"
+                                name="otra_falla" 
+                                placeholder="Describa la falla"
+                            >
+                        </div>
+
+
+                            
+
+                           
+
+                           
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Sede</label>
+                                <select class="form-select" id="sede" name="sede" required>
+                                    <option value="" selected disabled>Selecciona una sede</option>
+                                    {% for sede in sedes %}
+                                        <option value="{{ sede.id }}">{{ sede.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Evidencia fotográfica</label>
+                                <input type="file" class="form-control" id="foto" name="foto_path" accept="image/*" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Descripción</label>
+                                <textarea class="form-control" name="descripcion" rows="3" placeholder="Describe brevemente el problema..." required></textarea>
+                            </div>
+
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill">Enviar Reporte</button>
+                            </div>
+
+                        </form>
+                        <!-- Aquí termina el formulario -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer text-center text-white py-3 mt-5">
+        <p class="mb-0">© 2025 UNEGIA | Sistema de Reportes</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/selec_fallas.js') }}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+
+
+    <!-- 🔹 Script para mostrar el campo "Especifique la falla" si selecciona 'Otros' -->
+    <script>
+        document.getElementById("falla").addEventListener("change", function() {
+        const campoOtro = document.getElementById("campo_otro");
+        if (this.value === "otros") {
+            campoOtro.style.display = "block";
+        } else {
+            campoOtro.style.display = "none";
+            document.getElementById("otra_falla").value = "";
+        }
+        });
+    </script>
+
+
+    <script>
+        // --- Vista previa de la imagen seleccionada ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputFoto = document.getElementById('foto');
+            const previewContainer = document.createElement('div');
+            previewContainer.classList.add('text-center', 'mt-3');
+
+            // Crear imagen de vista previa
+            const previewImage = document.createElement('img');
+            previewImage.style.maxWidth = '100%';
+            previewImage.style.maxHeight = '250px';
+            previewImage.style.borderRadius = '10px';
+            previewImage.style.display = 'none'; // oculta al inicio
+            previewImage.alt = 'Vista previa de la imagen seleccionada';
+
+            previewContainer.appendChild(previewImage);
+            inputFoto.parentNode.insertAdjacentElement('afterend', previewContainer);
+
+            // Detectar cambio en el input
+            inputFoto.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        previewImage.src = e.target.result;
+                        previewImage.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewImage.style.display = 'none';
+                    previewImage.src = '';
+                }
+            });
+        });
+    </script>
+
+    
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const select = document.getElementById("falla");
+            const tooltip = document.getElementById("tooltipFalla");
+
+            select.addEventListener("mousemove", (e) => {
+                const optionElements = Array.from(select.options);
+                const rect = select.getBoundingClientRect();
+                const relativeY = e.clientY - rect.top;
+                const optionHeight = rect.height / optionElements.length;
+                const index = Math.floor(relativeY / optionHeight);
+                const option = optionElements[index];
+
+                if (option && option.dataset.inf) {
+                    tooltip.textContent = option.dataset.inf;
+                    tooltip.style.display = "block";
+                    tooltip.style.top = rect.height + 5 + "px";
+                    tooltip.style.left = "0";
+                } else {
+                    tooltip.style.display = "none";
+                }
+            });
+
+            select.addEventListener("mouseleave", () => {
+                tooltip.style.display = "none";
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const selectFalla = document.getElementById("falla");
+            const infoFalla = document.getElementById("infoFalla");
+
+            selectFalla.addEventListener("change", () => {
+                const selectedOption = selectFalla.options[selectFalla.selectedIndex];
+                const descripcion = selectedOption.getAttribute("data-inf");
+                infoFalla.textContent = descripcion ? descripcion : "";
+            });
+        });
+    </script>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+        const dropdown = document.getElementById("fallaDropdown");
+        const tooltip = document.getElementById("tooltipFalla");
+        const button = document.getElementById("fallaDropdownBtn");
+        const hiddenInput = document.getElementById("falla_id");
+
+        const campoOtro = document.getElementById("campo_otro");
+        const inputOtraFalla = document.getElementById("otra_falla");
+
+        // Mostrar tooltip al pasar sobre una opción
+        dropdown.addEventListener("mouseover", (e) => {
+            const item = e.target.closest(".dropdown-item");
+            if (item && item.dataset.inf) {
+            tooltip.textContent = item.dataset.inf;
+            tooltip.style.display = "block";
+            tooltip.style.top = `${item.offsetTop + item.offsetHeight}px`;
+            tooltip.style.left = `${item.offsetLeft}px`;
+            }
+        });
+
+        // Ocultar tooltip al salir del menú
+        dropdown.addEventListener("mouseleave", () => {
+            tooltip.style.display = "none";
+        });
+
+        // Asignar valor al hacer clic
+        dropdown.addEventListener("click", (e) => {
+            const item = e.target.closest(".dropdown-item");
+            if (!item) return;
+
+            e.preventDefault();
+
+            const texto = item.textContent.trim();
+            const id = item.dataset.id;
+
+            // Poner texto en el botón y guardar id en input oculto
+            button.textContent = texto;
+            hiddenInput.value = id;
+
+            // Si la opción elegida es "Otros" (compara en minúsculas)
+            if (texto.toLowerCase() === 'otros' || texto.toLowerCase() === 'otro') {
+            campoOtro.style.display = 'block';
+            inputOtraFalla.required = true;
+            // opcional: limpiar valor anterior
+            inputOtraFalla.value = '';
+            } else {
+            campoOtro.style.display = 'none';
+            inputOtraFalla.required = false;
+            // opcional: borrar valor si había
+            inputOtraFalla.value = '';
+            }
+
+            // ocultar tooltip si está visible
+            tooltip.style.display = "none";
+            // cerrar menú (Bootstrap se encarga si usas data-bs-toggle="dropdown", pero forzamos blur)
+            button.focus();
+        });
+
+        // Si el usuario escribe una falla en "otros" y luego envía, asegúrate de que
+        // el servidor reciba la info en el campo name="otra_falla".
+        });
+        </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializa tooltips de Bootstrap en todo el documento
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            const tooltipList = tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+
+            // ⚡ Solución para mostrar el tooltip al pasar sobre las opciones del select
+            const selectFalla = document.getElementById('falla');
+            selectFalla.addEventListener('mousemove', (event) => {
+                const hoveredOption = event.target.closest('option');
+                if (hoveredOption && hoveredOption.title) {
+                    selectFalla.setAttribute('title', hoveredOption.title);
+                } else {
+                    selectFalla.removeAttribute('title');
+                }
+            });
+        });
+        </script>
+
+    
+
+
+</body>
+</html>

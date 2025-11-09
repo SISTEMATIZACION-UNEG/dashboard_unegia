@@ -1,0 +1,44 @@
+# -------------------------
+# DEPENDENCIAS Y ENTORNO VIRTUAL
+# -------------------------
+# Ignorar el directorio del entorno virtual de Python (venv)
+venv/
+.venv/
+env/
+.env/
+
+# -------------------------
+# ARCHIVOS DE PYTHON GENERADOS
+# -------------------------
+# Bytecode generado por Python
+__pycache__/
+*.pyc
+*.pyd
+*.so
+
+# Logs y bases de datos SQLite locales (si usaras una)
+*.log
+*.sqlite
+*.db
+
+# -------------------------
+# ARCHIVOS SENSIBLES Y DE CONFIGURACIÓN LOCAL (¡CRÍTICO!)
+# -------------------------
+# NUNCA subir las credenciales de la base de datos o claves secretas
+# Asume que guardas tus credenciales en un archivo de configuración
+.env 
+config.py
+local_settings.py 
+settings.ini
+
+# -------------------------
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# -------------------------
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# -------------------------
+# ARCHIVOS ESPECÍFICOS DE FLASK/WEB
+# -------------------------
+# Si tienes una carpeta para subidas de usuarios/imágenes, ignorar el contenido:
+# static/uploads/
