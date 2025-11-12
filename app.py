@@ -1,3 +1,4 @@
+from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 import psycopg2
@@ -5,11 +6,30 @@ import psycopg2.extras
 import os
 from conexion import obtener_conexion, obtener_conexion_categorias, obtener_conexion_reportes_generales
 from dashboard_router import dashboard_bp
+from dotenv import load_dotenv
 
+
+# Cargar variables del archivo .env
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = "12345"
 app.register_blueprint(dashboard_bp)
+
+
+# -------------------------------
+# CONFIGURACIÓN DE CORREO
+# -------------------------------
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS') == 'True'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+
+mail = Mail(app)
+
+
 
 # Carpeta donde se guardarán las fotos
 UPLOAD_FOLDER = 'static/uploads'
@@ -202,7 +222,38 @@ def enviar_reporte():
         conexion.commit()
         cursor.close()
         conexion.close()
+
+        # --------------------------------------------
+        # Enviar correo de confirmación
+        # --------------------------------------------
+        try:
+            msg = Message(
+                subject="Nuevo Reporte Registrado",
+                recipients=["acalcurian671@gmail.com"],  # Puedes poner tu correo o el del jefe
+                body=f"""
+                Se ha recibido un nuevo reporte.
+
+                📋 Datos del reporte:
+                Cédula: {cedula}
+                Categoría ID: {categoria_id}
+                Falla ID: {falla_id}
+                Sede ID: {sede_id}
+                Descripción: {descripcion}
+
+                📸 Foto: {foto_path if foto_path else 'Sin imagen adjunta'}
+                """
+            )
+
+            mail.send(msg)
+            print("Correo enviado correctamente ✅")
+        except Exception as e:
+            print(f"Error al enviar correo: {e}")
+            flash(f"Error al enviar correo: {e}", "warning")
+
         flash("Reporte guardado correctamente con imagen.", "success")
+
+
+
 
     except Exception as e:
         flash(f"Error al guardar el reporte: {e}", "danger")
