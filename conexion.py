@@ -33,3 +33,14 @@ def obtener_conexion_reportes_generales():
     except Exception as e:
         print("Error al conectar a la base de datos reportes_generales:", e)
         return None
+
+
+# --- Conexión a base de datos de REPORTES GENERALES ---
+def obtener_conexion_departamentos_db():
+    try:
+        db = DATABASES["departamentos_db"]
+        conexion = psycopg2.connect(**db)
+        return conexion
+    except Exception as e:
+        print("Error al conectar a la base de datos departamentos_db:", e)
+        return None

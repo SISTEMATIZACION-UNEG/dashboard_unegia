@@ -4,9 +4,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 import psycopg2
 import psycopg2.extras
 import os
-from conexion import obtener_conexion, obtener_conexion_categorias, obtener_conexion_reportes_generales
+from conexion import obtener_conexion, obtener_conexion_categorias, obtener_conexion_departamentos_db, obtener_conexion_reportes_generales
 from dashboard_router import dashboard_bp
 from dotenv import load_dotenv
+import requests
 
 
 # Cargar variables del archivo .env
@@ -223,37 +224,28 @@ def enviar_reporte():
         cursor.close()
         conexion.close()
 
-        # --------------------------------------------
-        # Enviar correo de confirmación
-        # --------------------------------------------
         try:
-            msg = Message(
-                subject="Nuevo Reporte Registrado",
-                recipients=["acalcurian671@gmail.com"],  # Puedes poner tu correo o el del jefe
-                body=f"""
-                Se ha recibido un nuevo reporte.
-
-                📋 Datos del reporte:
-                Cédula: {cedula}
-                Categoría ID: {categoria_id}
-                Falla ID: {falla_id}
-                Sede ID: {sede_id}
-                Descripción: {descripcion}
-
-                📸 Foto: {foto_path if foto_path else 'Sin imagen adjunta'}
-                """
+            # Llamar a la API de correo
+            requests.post(
+                "http://127.0.0.1:5000/api/enviar_correo",
+                json={
+                    "cedula": cedula,
+                    "categoria_id": categoria_id,
+                    "falla_id": falla_id,
+                    "sede_id": sede_id,
+                    "descripcion": descripcion,
+                    "foto_path": foto_path
+                }
             )
-
-            mail.send(msg)
-            print("Correo enviado correctamente ✅")
         except Exception as e:
-            print(f"Error al enviar correo: {e}")
-            flash(f"Error al enviar correo: {e}", "warning")
+            print(f"Error al llamar a la API de correo: {e}")
+
+
+
+
+
 
         flash("Reporte guardado correctamente con imagen.", "success")
-
-
-
 
     except Exception as e:
         flash(f"Error al guardar el reporte: {e}", "danger")
@@ -448,6 +440,144 @@ def obtener_categorias():
     except Exception as e:
         print("Error en /api/categorias:", e)
         return jsonify({"error": str(e)}), 500
+
+
+
+
+@app.route('/api/enviar_correo', methods=['POST'])
+def api_enviar_correo():
+    data = request.json
+
+    try:
+        # Datos del reporte
+        cedula = data.get('cedula')
+        categoria_id = data.get('categoria_id')
+        falla_id = data.get('falla_id')
+        sede_id = data.get('sede_id')
+        descripcion = data.get('descripcion')
+        foto_path = data.get('foto_path')
+        reporte_id = data.get('reporte_id')  # Opcional, si lo envías desde el frontend
+
+        destinatario = "acalcurian671@gmail.com"
+        asunto = "Nuevo Reporte Registrado"
+
+        # ------------------------------------------------------
+        # Guardar primero el correo en la base de datos
+        # ------------------------------------------------------
+        correo_id = None
+        try:
+            conexion = obtener_conexion_departamentos_db()
+            cursor = conexion.cursor()
+
+            sql = """
+            INSERT INTO correos_enviados 
+            (reporte_id, cedula, destinatario, asunto, mensaje, foto_path, estatus_confirmacion)
+            VALUES (%s, %s, %s, %s, %s, %s, FALSE)
+            RETURNING id
+            """
+            valores = (
+                reporte_id,
+                cedula,
+                destinatario,
+                asunto,
+                descripcion,
+                foto_path
+            )
+
+            cursor.execute(sql, valores)
+            correo_id = cursor.fetchone()[0]  # ✅ Obtenemos el ID del correo
+            conexion.commit()
+            cursor.close()
+            conexion.close()
+            print(f" Registro guardado en correos_enviados correctamente (ID: {correo_id})")
+
+        except Exception as db_error:
+            print(f" Error al guardar correo en la base de datos: {db_error}")
+
+        # ------------------------------------------------------
+        # Construcción del correo
+        # ------------------------------------------------------
+        msg = Message(
+            subject=asunto,
+            recipients=[destinatario],
+        )
+
+        # Cuerpo con botón de confirmación que incluye el ID real
+        msg.html = f"""
+        <h2>📋 Nuevo reporte recibido</h2>
+        <p><b>Cédula:</b> {cedula}</p>
+        <p><b>Categoría:</b> {categoria_id}</p>
+        <p><b>Falla:</b> {falla_id}</p>
+        <p><b>Sede:</b> {sede_id}</p>
+        <p><b>Descripción:</b> {descripcion}</p>
+        <br>
+        {'<img src="cid:foto_reporte">' if foto_path else '<p>Sin imagen adjunta</p>'}
+        <br>
+        <p>Por favor confirma la recepción del correo:</p>
+        <a href="http://127.0.0.1:5000/confirmar_recepcion?correo_id={correo_id}" 
+           style="background-color:#4CAF50;color:white;padding:10px 20px;
+           text-decoration:none;border-radius:5px;">Confirmar Recepción ✅</a>
+        """
+
+
+        
+
+        # Adjuntar imagen si existe
+        if foto_path:
+            with app.open_resource(os.path.join('static', foto_path)) as fp:
+                msg.attach(
+                    "reporte.jpg",
+                    "image/jpeg",
+                    fp.read(),
+                    disposition='inline',
+                    headers={"Content-ID": "<foto_reporte>"}
+                )
+
+        # Enviar el correo
+        mail.send(msg)
+        print("Correo enviado correctamente")
+
+        return jsonify({"success": True, "message": "Correo enviado y registrado correctamente"}), 200
+
+    except Exception as e:
+        print(f"Error al enviar correo: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    
+
+
+
+@app.route('/confirmar_recepcion', methods=['GET'])
+def confirmar_recepcion():
+    correo_id = request.args.get('correo_id')
+
+    if not correo_id:
+        return "Faltan datos para confirmar.", 400
+
+    try:
+        conexion = obtener_conexion_departamentos_db()
+        cursor = conexion.cursor()
+        cursor.execute("UPDATE correos_enviados SET estatus_confirmacion = TRUE WHERE id = %s", (correo_id,))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+        print(f"✅ Confirmación registrada para correo ID: {correo_id}")
+
+        # No redirige, solo muestra mensaje simple
+        return """
+        <html>
+        <head><title>Confirmación</title></head>
+        <body style="font-family:Arial;text-align:center;margin-top:50px;">
+            <h2 style="color:green;">✅ Confirmación registrada correctamente</h2>
+            <p>El estatus del correo ha sido actualizado.</p>
+            <p>Ya puedes cerrar esta pestaña.</p>
+        </body>
+        </html>
+        """
+
+    except Exception as e:
+        print(f"Error al confirmar recepción: {e}")
+        return f"Error al confirmar recepción: {e}", 500  #estaos son mis enviar correo y confirmar correo realiza las implemetnaciones sin cambiar mas nada
 
 
 # -----------------------------------------------------
