@@ -580,6 +580,61 @@ def confirmar_recepcion():
         return f"Error al confirmar recepción: {e}", 500  #estaos son mis enviar correo y confirmar correo realiza las implemetnaciones sin cambiar mas nada
 
 
+
+
+
+@app.route('/dashboard_admin')
+def dashboard_admin():
+    conexion = obtener_conexion_departamentos_db()
+    cursor = conexion.cursor()
+
+    cursor.execute("SELECT id, reporte_id, cedula, destinatario, asunto, mensaje, foto_path, estatus_confirmacion, estatus_solucion FROM correos_enviados ORDER BY id DESC")
+
+    correos = cursor.fetchall()
+    cursor.close()
+    conexion.close()
+
+    # Convertimos la tupla a dict para Jinja
+    lista = []
+    for c in correos:
+        lista.append({
+            "id": c[0],
+            "reporte_id": c[1],
+            "cedula": c[2],
+            "destinatario": c[3],
+            "asunto": c[4],
+            "mensaje": c[5],
+            "foto_path": c[6],
+            "estatus_confirmacion": c[7],
+            "estatus_solucion": c[8],
+        })
+
+    return render_template("paginas/dashboard_admin.html", correos=lista)
+
+
+
+@app.route("/marcar_solucionado/<int:correo_id>", methods=["POST"])
+def marcar_solucionado(correo_id):
+    try:
+        conexion = obtener_conexion_departamentos_db()
+        cursor = conexion.cursor()
+
+        cursor.execute("""
+            UPDATE correos_enviados
+            SET estatus_solucion = TRUE
+            WHERE id = %s
+        """, (correo_id,))
+
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+
+        return jsonify({"success": True}), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 # -----------------------------------------------------
 # MAIN
 # -----------------------------------------------------
