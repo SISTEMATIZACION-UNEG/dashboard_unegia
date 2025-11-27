@@ -56,8 +56,6 @@
                             <th>Cédula</th>
                             <th>Destinatario</th>
                             <th>Confirmado</th>
-                            <th>Solución</th>
-                            <th>Acción</th>
                         </tr>
                     </thead>
 
@@ -74,27 +72,6 @@
                                     <span class="badge bg-success">✔ Confirmado</span>
                                 {% else %}
                                     <span class="badge bg-danger">✘ No confirmado</span>
-                                {% endif %}
-                            </td>
-
-                            <!-- Solución -->
-                            <td>
-                                {% if correo.estatus_solucion %}
-                                    <span class="badge bg-success">Solucionado</span>
-                                {% else %}
-                                    <span class="badge bg-warning">Pendiente</span>
-                                {% endif %}
-                            </td>
-
-                            <!-- Acción -->
-                            <td>
-                                {% if not correo.estatus_solucion %}
-                                <button class="btn btn-warning btn-sm"
-                                        onclick="marcarSolucionado({{correo.id}})">
-                                    Marcar solucionado
-                                </button>
-                                {% else %}
-                                    <span class="text-success fw-bold">✔</span>
                                 {% endif %}
                             </td>
 
