@@ -113,14 +113,15 @@
                                 <input type="file" class="form-control" id="foto" name="foto_path" accept="image/*" required>
                             </div>
 
-                            <button type="button" onclick="obtenerUbicacion()" class="btn btn-warning">
-                                Cargar Ubicación
+                            <button id="btnUbicacion" type="button" onclick="obtenerUbicacion()" 
+                                    class="btn btn-warning">
+                                    Cargar ubicación
                             </button>
 
                             <input type="hidden" id="latitud" name="latitud">
                             <input type="hidden" id="longitud" name="longitud">
 
-                            <p id="ubicacion-status" style="margin-top:10px; color:green; font-weight:bold;"></p>
+                            <p id="ubicacion-status" style="margin-top:10px; font-weight:bold;"></p>
 
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Descripción</label>
@@ -350,12 +351,18 @@
 
     <script>
         function obtenerUbicacion() {
+            const btn = document.getElementById("btnUbicacion");
+            const status = document.getElementById("ubicacion-status");
+
             if (!navigator.geolocation) {
                 alert("Tu navegador no soporta geolocalización.");
                 return;
             }
 
-            document.getElementById("ubicacion-status").innerText = "Obteniendo ubicación...";
+            // Botón en estado de carga
+            btn.innerText = "Obteniendo ubicación...";
+            btn.disabled = true;
+            btn.style.backgroundColor = "#ffc107";
 
             navigator.geolocation.getCurrentPosition(
                 function (pos) {
@@ -365,17 +372,28 @@
                     document.getElementById("latitud").value = lat;
                     document.getElementById("longitud").value = lon;
 
-                    document.getElementById("ubicacion-status").innerText =
-                        "Ubicación cargada correctamente ✔️";
+                    // Cambiar a estado final (verde y deshabilitado)
+                    btn.style.backgroundColor = "#28a745"; // Verde
+                    btn.style.color = "white";
+                    btn.innerText = "Ubicación cargada";
+                    btn.disabled = true; // SE DESHABILITA PARA SIEMPRE
+
+                    status.style.color = "green";
+                    status.innerText = `Ubicación cargada correctamente ✔️`;
                 },
+
                 function (error) {
-                    alert("No se pudo obtener la ubicación: " + error.message);
-                    document.getElementById("ubicacion-status").innerText =
-                        "Error al obtener ubicación ❌";
+                    status.style.color = "red";
+                    status.innerText = "Error al obtener ubicación";
+
+                    // Volver a habilitar el botón solo si hubo error
+                    btn.innerText = "Cargar ubicación";
+                    btn.disabled = false;
+                    btn.style.backgroundColor = "#ffc107";
                 }
             );
         }
-        </script>
+    </script>
 
     
 

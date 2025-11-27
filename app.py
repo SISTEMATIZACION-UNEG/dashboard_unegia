@@ -200,6 +200,10 @@ def enviar_reporte():
     foto = request.files.get('foto_path')
     descripcion = request.form.get('descripcion')
 
+    # ⬅️ SE AGREGAN ESTAS DOS LÍNEAS
+    lat_foto = request.form.get("latitud")
+    lon_foto = request.form.get("longitud")
+
     upload_folder = os.path.join(app.root_path, 'static', 'uploads')
     os.makedirs(upload_folder, exist_ok=True)
 
@@ -215,11 +219,20 @@ def enviar_reporte():
     try:
         conexion = obtener_conexion_reportes_generales()
         cursor = conexion.cursor()
+
+        # ⬅️ SQL ACTUALIZADO PARA GUARDAR COORDENADAS
         sql = """
-        INSERT INTO reportes (cedula, categoria, tipo_falla, fallas_otros, sede, foto_path, descripcion)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO reportes 
+        (cedula, categoria, tipo_falla, fallas_otros, sede, foto_path, descripcion, lat_foto, lon_foto)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        valores = (cedula, categoria_id, falla_id, otra_falla, sede_id, foto_path, descripcion)
+
+        # ⬅️ COLOCAMOS LOS VALORES SIN CAMBIAR NADA MÁS
+        valores = (
+            cedula, categoria_id, falla_id, otra_falla, 
+            sede_id, foto_path, descripcion, lat_foto, lon_foto
+        )
+
         cursor.execute(sql, valores)
         conexion.commit()
         cursor.close()
@@ -241,11 +254,6 @@ def enviar_reporte():
         except Exception as e:
             print(f"Error al llamar a la API de correo: {e}")
 
-
-
-
-
-
         flash("Reporte guardado correctamente con imagen.", "success")
 
     except Exception as e:
@@ -253,6 +261,7 @@ def enviar_reporte():
         print(f"Error al guardar reporte: {e}")
 
     return redirect(url_for('index', categoria_id=categoria_id))
+
 
 
 # -----------------------------------------------------
