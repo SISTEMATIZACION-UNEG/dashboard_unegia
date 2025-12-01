@@ -762,6 +762,66 @@ def dashboard_admin_no_confirmados():
     return render_template("paginas/dashboard_admin.html", correos=lista)
 
 
+@app.route('/dashboard_admin/reportes')
+def dashboard_admin_reportes():
+    try:
+        print("\nConsultando TODOS los reportes...")
+
+        # 1. Obtener TODOS los reportes
+        conexion = obtener_conexion_reportes_generales()
+        cursor = conexion.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor.execute("""
+            SELECT id, cedula, categoria, tipo_falla, sede, foto_path, descripcion, fecha_reporte
+            FROM reportes
+            ORDER BY fecha_reporte DESC
+        """)
+        reportes = cursor.fetchall()
+        cursor.close()
+        conexion.close()
+
+        # 2. Obtener categorías y fallas
+        conexion_cat = obtener_conexion_categorias()
+        cursor_cat = conexion_cat.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        cursor_cat.execute("SELECT id, nombre FROM categorias")
+        categorias_data = cursor_cat.fetchall()
+
+        cursor_cat.execute("SELECT id, descripcion AS nombre FROM fallas")
+        fallas_data = cursor_cat.fetchall()
+
+        cursor_cat.close()
+        conexion_cat.close()
+
+        # 3. Obtener sedes
+        conexion_sedes = obtener_conexion()
+        cursor_sedes = conexion_sedes.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor_sedes.execute("SELECT id, nombre FROM sedes")
+        sedes_data = cursor_sedes.fetchall()
+        cursor_sedes.close()
+        conexion_sedes.close()
+
+        # Mapear IDs → nombres
+        categorias = {str(c['id']).strip(): c['nombre'] for c in categorias_data}
+        fallas = {str(f['id']).strip(): f['nombre'] for f in fallas_data}
+        sedes = {str(s['id']).strip(): s['nombre'] for s in sedes_data}
+
+        # Convertir IDs a nombres legibles
+        for rep in reportes:
+            rep['categoria'] = categorias.get(str(rep.get('categoria')), "(N/D)")
+            rep['tipo_falla'] = fallas.get(str(rep.get('tipo_falla')), "(N/D)")
+            rep['sede'] = sedes.get(str(rep.get('sede')), "(N/D)")
+
+    except Exception as e:
+        flash(f"Error al obtener reportes: {e}", "danger")
+        print(f"❌ Error en dashboard_admin_reportes(): {e}")
+        reportes = []
+
+    return render_template("paginas/dashboard_admin.html", reportes=reportes)
+
+
+
+
+
 
 # -----------------------------------------------------
 # MAIN

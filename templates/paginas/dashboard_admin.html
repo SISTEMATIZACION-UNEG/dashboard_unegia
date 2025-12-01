@@ -21,12 +21,14 @@
     <div style="width: 230px; background:#1e1e2f; min-height:100vh; padding:20px;">
         <h3 class="text-white mb-4">Administrador</h3>
 
+        <!-- Correos -->
         <a href="{{ url_for('dashboard_admin') }}" class="d-block text-white mt-3">
-             Correos
+            Correos
         </a>
 
-        <a href="#" class="d-block text-white mt-3">
-             Reportes
+        <!-- Reportes -->
+        <a href="{{ url_for('dashboard_admin_reportes') }}" class="d-block text-white mt-3">
+            Reportes
         </a>
 
         <a href="#" class="d-block text-white mt-3">
@@ -37,6 +39,56 @@
     <!-- Contenido -->
     <div class="p-4" style="flex:1;">
 
+        {% if reportes is defined %}
+        <!-- ============================
+             SECCIÓN REPORTES
+        ============================= -->
+        <h2 class="mb-4">Reportes del Sistema</h2>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-bordered table-hover text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Cédula</th>
+                            <th>Categoría</th>
+                            <th>Falla</th>
+                            <th>Sede</th>
+                            <th>Descripción</th>
+                            <th>Fecha</th>
+                            <th>Foto</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for r in reportes %}
+                        <tr>
+                            <td>{{ r.id }}</td>
+                            <td>{{ r.cedula }}</td>
+                            <td>{{ r.categoria }}</td>
+                            <td>{{ r.tipo_falla }}</td>
+                            <td>{{ r.sede }}</td>
+                            <td>{{ r.descripcion }}</td>
+                            <td>{{ r.fecha_reporte.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% if r.foto_path %}
+                                    <a href="{{ r.foto_path }}" target="_blank" class="btn btn-sm btn-info">Ver</a>
+                                {% else %}
+                                    <span class="badge bg-secondary">Sin foto</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- ============================
+             SECCIÓN CORREOS
+        ============================= -->
         <h2 class="mb-4">Correos enviados</h2>
 
         <!-- Filtros -->
@@ -48,7 +100,6 @@
 
         <div class="card shadow-sm">
             <div class="card-body">
-
                 <table class="table table-bordered table-hover text-center" id="tablaCorreos">
                     <thead class="table-dark">
                         <tr>
@@ -62,43 +113,27 @@
                     <tbody>
                         {% for correo in correos %}
                         <tr>
-                            <td>{{  correo.fecha_envio.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ correo.fecha_envio.strftime('%d/%m/%Y') }}</td>
                             <td>{{ correo.cedula }}</td>
                             <td>{{ correo.destinatario }}</td>
-
-                            <!-- Confirmación -->
                             <td>
                                 {% if correo.estatus_confirmacion %}
-                                    <span class="badge bg-success">✔ Confirmado</span>
+                                <span class="badge bg-success">✔ Confirmado</span>
                                 {% else %}
-                                    <span class="badge bg-danger">✘ No confirmado</span>
+                                <span class="badge bg-danger">✘ No confirmado</span>
                                 {% endif %}
                             </td>
-
                         </tr>
                         {% endfor %}
                     </tbody>
 
                 </table>
-
             </div>
         </div>
+        {% endif %}
 
     </div>
 </div>
-
-<script>
-function marcarSolucionado(id) {
-    fetch(`/marcar_solucionado/${id}`, { method: "POST" })
-    .then(r => r.json())
-    .then(() => location.reload());
-}
-
-function filtrar(tipo) {
-    // Si quieres, luego agregamos la lógica real
-    alert("Filtro seleccionado: " + tipo);
-}
-</script>
 
 </body>
 </html>
