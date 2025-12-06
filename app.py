@@ -771,7 +771,7 @@ def dashboard_admin_reportes():
         conexion = obtener_conexion_reportes_generales()
         cursor = conexion.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("""
-            SELECT id, cedula, categoria, tipo_falla, sede, foto_path, descripcion, fecha_reporte
+            SELECT categoria, tipo_falla, sede, foto_path, descripcion, fecha_reporte
             FROM reportes
             ORDER BY fecha_reporte DESC
         """)
@@ -813,7 +813,7 @@ def dashboard_admin_reportes():
 
     except Exception as e:
         flash(f"Error al obtener reportes: {e}", "danger")
-        print(f"❌ Error en dashboard_admin_reportes(): {e}")
+        print(f"Error en dashboard_admin_reportes(): {e}")
         reportes = []
 
     return render_template("paginas/dashboard_admin.html", reportes=reportes)

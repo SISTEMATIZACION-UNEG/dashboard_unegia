@@ -50,22 +50,19 @@
                 <table class="table table-bordered table-hover text-center">
                     <thead class="table-dark">
                         <tr>
-                            <th>ID</th>
-                            <th>Cédula</th>
                             <th>Categoría</th>
                             <th>Falla</th>
                             <th>Sede</th>
                             <th>Descripción</th>
                             <th>Fecha</th>
                             <th>Foto</th>
+                            <th>Opciones</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         {% for r in reportes %}
                         <tr>
-                            <td>{{ r.id }}</td>
-                            <td>{{ r.cedula }}</td>
                             <td>{{ r.categoria }}</td>
                             <td>{{ r.tipo_falla }}</td>
                             <td>{{ r.sede }}</td>
@@ -73,11 +70,18 @@
                             <td>{{ r.fecha_reporte.strftime('%d/%m/%Y') }}</td>
                             <td>
                                 {% if r.foto_path %}
-                                    <a href="{{ r.foto_path }}" target="_blank" class="btn btn-sm btn-info">Ver</a>
-                                {% else %}
-                                    <span class="badge bg-secondary">Sin foto</span>
+                                    <img src="{{ url_for('static', filename=r.foto_path) }}"
+                                        alt="Foto reporte"
+                                        style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;">{% else %}
+                                    <span style="color: #888;">Sin foto</span>
                                 {% endif %}
                             </td>
+                            
+                            <td>
+                                <button type="submit" class="btn btn-primary btn-lg px-2 py-2 rounded-pill">Solicion IA</button>
+                                <button type="submit" class="btn btn-primary btn-lg px-2 py-2 rounded-pill">Ver Maps</button>
+                            </td>
+
                         </tr>
                         {% endfor %}
                     </tbody>
