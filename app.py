@@ -795,7 +795,7 @@ def dashboard_admin_reportes():
         # 3. Obtener sedes
         conexion_sedes = obtener_conexion()
         cursor_sedes = conexion_sedes.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor_sedes.execute("SELECT id, nombre FROM sedes")
+        cursor_sedes.execute("SELECT id, nombre, latitud, longitud FROM sedes")
         sedes_data = cursor_sedes.fetchall()
         cursor_sedes.close()
         conexion_sedes.close()
@@ -804,12 +804,25 @@ def dashboard_admin_reportes():
         categorias = {str(c['id']).strip(): c['nombre'] for c in categorias_data}
         fallas = {str(f['id']).strip(): f['nombre'] for f in fallas_data}
         sedes = {str(s['id']).strip(): s['nombre'] for s in sedes_data}
+        sedes_lat = {str(s['id']).strip(): s['latitud'] for s in sedes_data}
+        sedes_lng = {str(s['id']).strip(): s['longitud'] for s in sedes_data}
 
+        # Convertir DictRow → dict para permitir agregar lat/lng
+        reportes = [dict(r) for r in reportes]
+        
         # Convertir IDs a nombres legibles
         for rep in reportes:
+
+            sede_id = str(rep.get('sede'))
             rep['categoria'] = categorias.get(str(rep.get('categoria')), "(N/D)")
             rep['tipo_falla'] = fallas.get(str(rep.get('tipo_falla')), "(N/D)")
             rep['sede'] = sedes.get(str(rep.get('sede')), "(N/D)")
+            
+            rep['latitud'] = sedes_lat.get(sede_id, None)
+            rep['longitud'] = sedes_lng.get(sede_id, None)
+            print("LAT:", rep["latitud"], "LONG:", rep["longitud"])
+
+        
 
     except Exception as e:
         flash(f"Error al obtener reportes: {e}", "danger")
