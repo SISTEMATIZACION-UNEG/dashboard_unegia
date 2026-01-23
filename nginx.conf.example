@@ -1,0 +1,66 @@
+# Nginx configuration example for Dashboard UNEGIA Flask application
+# This is a sample configuration that should be adapted to your server setup
+# Copy this to /etc/nginx/sites-available/dashboard-unegia
+# Then create a symlink: sudo ln -s /etc/nginx/sites-available/dashboard-unegia /etc/nginx/sites-enabled/
+
+server {
+    listen 80;
+    # Replace with your domain name or server IP
+    server_name dashboard.unegia.edu.ve;
+
+    # Maximum upload size (should match Flask app config)
+    client_max_body_size 500M;
+
+    # Logging
+    access_log /var/log/nginx/dashboard-unegia-access.log;
+    error_log /var/log/nginx/dashboard-unegia-error.log;
+
+    # Serve static files directly through Nginx for better performance
+    location /static {
+        alias /path/to/your/dashboard_unegia/static/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Proxy all other requests to Gunicorn
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts for long-running requests
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+
+    # Optional: Enable gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
+}
+
+# Optional: HTTPS configuration (requires SSL certificate)
+# Uncomment and configure after obtaining SSL certificates (e.g., using Let's Encrypt)
+#
+# server {
+#     listen 443 ssl http2;
+#     server_name dashboard.unegia.edu.ve;
+#
+#     ssl_certificate /etc/letsencrypt/live/dashboard.unegia.edu.ve/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/dashboard.unegia.edu.ve/privkey.pem;
+#     ssl_protocols TLSv1.2 TLSv1.3;
+#     ssl_ciphers HIGH:!aNULL:!MD5;
+#
+#     # ... rest of configuration same as HTTP above
+# }
+#
+# # Redirect HTTP to HTTPS
+# server {
+#     listen 80;
+#     server_name dashboard.unegia.edu.ve;
+#     return 301 https://$server_name$request_uri;
+# }
