@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 # =============================================================================
 # Script: export_data.sh
 # Descripción: Exporta datos de las bases de datos del proyecto a archivos SQL
